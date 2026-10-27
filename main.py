@@ -27,12 +27,13 @@
 # THE SOFTWARE.
 #
 
-from machine import Pin, SPI, I2C, lightsleep
+import machine
 import framebuf
 import utime
 import network
 import time
 import urequests
+import ntptime
 
 # Display resolution
 EPD_WIDTH       = 128
@@ -143,23 +144,23 @@ KEY2 = 15
 
 class config():
     def __init__(self, i2c_addr):
-        self.reset_pin = Pin(RST_PIN, Pin.OUT)
-        self.busy_pin = Pin(BUSY_PIN, Pin.IN)
-        self.cs_pin = Pin(CS_PIN, Pin.OUT)
+        self.reset_pin = machine.Pin(RST_PIN, machine.Pin.OUT)
+        self.busy_pin = machine.Pin(BUSY_PIN, machine.Pin.IN)
+        self.cs_pin = machine.Pin(CS_PIN, machine.Pin.OUT)
 
-        self.trst_pin = Pin(TRST, Pin.OUT)
-        self.int_pin = Pin(INT, Pin.IN)
+        self.trst_pin = machine.Pin(TRST, machine.Pin.OUT)
+        self.int_pin = machine.Pin(INT, machine.Pin.IN)
 
-        self.key0 = Pin(KEY0, Pin.IN, Pin.PULL_UP)
-        self.key1 = Pin(KEY1, Pin.IN, Pin.PULL_UP)
-        self.key2 = Pin(KEY2, Pin.IN, Pin.PULL_UP)
+        self.key0 = machine.Pin(KEY0, machine.Pin.IN, machine.Pin.PULL_UP)
+        self.key1 = machine.Pin(KEY1, machine.Pin.IN, machine.Pin.PULL_UP)
+        self.key2 = machine.Pin(KEY2, machine.Pin.IN, machine.Pin.PULL_UP)
         
-        self.spi = SPI(1)
-        self.spi.init(baudrate=4000_000)
-        self.dc_pin = Pin(DC_PIN, Pin.OUT)
+        self.spi = machine.SPI(1)
+        self.spi.init(baudrate=4000_000, polarity=0, phase=0)
+        self.dc_pin = machine.Pin(DC_PIN, machine.Pin.OUT)
 
         self.address = i2c_addr
-        self.i2c = I2C(1, scl=Pin(7), sda=Pin(6), freq=100_000)
+        self.i2c = machine.I2C(1, scl=machine.Pin(7), sda=machine.Pin(6), freq=100_000)
 
     def digital_write(self, pin, value):
         pin.value(value)
@@ -585,7 +586,8 @@ class ICNT86():
 
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
-wlan.connect('VibeGuest', 'REDACTED')
+from secrets import WIFI_SSID, WIFI_PASSWORD
+wlan.connect(WIFI_SSID, WIFI_PASSWORD)
 
 flag_t = NumSelect = 1
 ReFlag = SelfFlag  = temp = isHide = key_value = 0
@@ -621,6 +623,27 @@ wlanIp = wlan.ifconfig()[0]
 
 print('Connected! IP address:', wlanIp)
 
+ntptime.settime()
+
+rtc = machine.RTC()
+rtc_datetime = rtc.datetime()
+month_name = (
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+)[rtc_datetime[1] - 1]
+hour = rtc_datetime[4]
+hour_12 = hour % 12 or 12
+ampm = "AM" if hour < 12 else "PM"
+current_time = "%s %d, %04d %d:%02d %s UTC" % (
+    month_name,
+    rtc_datetime[2],
+    rtc_datetime[0],
+    hour_12,
+    rtc_datetime[5],
+    ampm,
+)
+print('Current UTC DateTime:', current_time)
+
 response = urequests.get('https://api.ipify.org?format=json')
 
 # 3. Print the result and close the connection
@@ -647,6 +670,7 @@ landscape.text("First line", 8, 24, 0x00)
 landscape.text("Second line", 8, 42, 0x00)
 landscape.text(wlanIp, 8, 60, 0x00)
 landscape.text(responseText, 8, 78, 0x00)
+landscape.text(current_time, 8, 96, 0x00)
 
 epd.image1Gray_Portrait.fill(0xff)
 for x in range(landscape_width):
@@ -658,7 +682,7 @@ epd.display_Base(epd.buffer)
 
 epd.delay_ms(10000)
 
-lightsleep()
+machine.lightsleep()
 
 def pthread_irq():
     if(tp.config.digital_read(tp.config.int_pin) == 0):
