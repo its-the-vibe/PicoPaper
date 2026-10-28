@@ -34,6 +34,8 @@ import network
 import time
 import urequests
 import ntptime
+import ujson
+import ubinascii
 
 # Display resolution
 EPD_WIDTH       = 128
@@ -586,8 +588,31 @@ class ICNT86():
 
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
-from secrets import WIFI_SSID, WIFI_PASSWORD
+from secrets import WIFI_SSID, WIFI_PASSWORD, LOGGING_ENDPOINT, BASIC_AUTH_PASSWORD, BASIC_AUTH_USERNAME
 wlan.connect(WIFI_SSID, WIFI_PASSWORD)
+
+auth_string = f"{BASIC_AUTH_USERNAME}:{BASIC_AUTH_PASSWORD}"
+# b2a_base64 adds a trailing newline character, so we use .strip() to remove it
+auth_encoded = ubinascii.b2a_base64(auth_string.encode('ascii')).decode('ascii').strip()
+
+headers = {
+    "Content-Type": "application/json",
+    "Authorization": f"Basic {auth_encoded}"
+}
+
+def log(message):
+    print(message)
+    if wlan.isconnected():
+        payload = {
+            'severity': 'debug',
+            'message': message,
+            'service': 'PicoPaper',
+        }
+        try:
+            response = urequests.post(LOGGING_ENDPOINT, json=payload, headers=headers)
+            response.close()
+        except Exception as e:
+            print('Failed to send log:', e)
 
 flag_t = NumSelect = 1
 ReFlag = SelfFlag  = temp = isHide = key_value = 0
@@ -621,7 +646,7 @@ while not wlan.isconnected():
 
 wlanIp = wlan.ifconfig()[0]
 
-print('Connected! IP address:', wlanIp)
+log(f'Connected! IP address: {wlanIp}')
 
 ntptime.settime()
 
@@ -642,18 +667,31 @@ current_time = "%s %d, %04d %d:%02d %s UTC" % (
     rtc_datetime[5],
     ampm,
 )
-print('Current UTC DateTime:', current_time)
+log(f'Current UTC DateTime: {current_time}')
 
 response = urequests.get('https://api.ipify.org?format=json')
 
 # 3. Print the result and close the connection
 responseText = response.text
 response.close()
-print(responseText)
+log(responseText)
 
-wlan.disconnect()
-wlan.active(False)
-print("Wi-Fi turned off.")
+en_pin = machine.Pin(25, machine.Pin.OUT)
+
+def read_battery_voltage():
+    en_pin.high()
+    time.sleep_ms(10)
+    vsys_pin = machine.ADC(29)
+    vsys_value = vsys_pin.read_u16()
+    en_pin.low()
+
+    lvoltage = vsys_value * (3.3 / 65535) * 3
+    return lvoltage
+
+for i in range(5):
+    voltage = read_battery_voltage()
+    log(f"Battery Voltage: {voltage:.2f} V")
+    time.sleep(1)
 
 landscape_width = EPD_HEIGHT
 landscape_height = EPD_WIDTH
@@ -666,11 +704,13 @@ landscape = framebuf.FrameBuffer(
 )
 
 landscape.fill(0xff)  # white background
-landscape.text("First line", 8, 24, 0x00)
-landscape.text("Second line", 8, 42, 0x00)
-landscape.text(wlanIp, 8, 60, 0x00)
-landscape.text(responseText, 8, 78, 0x00)
-landscape.text(current_time, 8, 96, 0x00)
+landscape.text("First line", 8, 12, 0x00)
+landscape.text("Second line", 8, 30, 0x00)
+landscape.text(wlanIp, 8, 48, 0x00)
+landscape.text(responseText, 8, 66, 0x00)
+landscape.text(current_time, 8, 84, 0x00)
+voltage = read_battery_voltage()
+landscape.text(f"Battery Voltage: {voltage:.2f} V", 8, 102, 0x00)
 
 epd.image1Gray_Portrait.fill(0xff)
 for x in range(landscape_width):
@@ -680,7 +720,18 @@ for x in range(landscape_width):
 
 epd.display_Base(epd.buffer)
 
-epd.delay_ms(10000)
+for i in range(5):
+    voltage = read_battery_voltage()
+    log(f"Battery Voltage: {voltage:.2f} V")
+    time.sleep(1)
+
+log("Sleeping for 120 seconds")
+
+epd.delay_ms(120000)
+
+wlan.disconnect()
+wlan.active(False)
+log("Wi-Fi turned off.")
 
 machine.lightsleep()
 
