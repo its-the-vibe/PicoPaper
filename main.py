@@ -669,11 +669,19 @@ current_time = "%s %d, %04d %d:%02d %s UTC" % (
 )
 log(f'Current UTC DateTime: {current_time}')
 
-response = urequests.get('https://api.ipify.org?format=json')
+# response = urequests.get('https://api.ipify.org?format=json')
+response = urequests.get('https://vibe-thoughts.vibechung.workers.dev/api/thought')
 
-# 3. Print the result and close the connection
-responseText = response.text
-response.close()
+responseText = "no response"
+try:
+    jsonData = response.json()
+    thingResponse = jsonData.get("response")
+    response.close()
+    responseText = thingResponse    
+except Exception as e:
+    log(f"Failed to fetch thought: {e}")
+    response = None
+ 
 log(responseText)
 
 en_pin = machine.Pin(25, machine.Pin.OUT)
@@ -688,10 +696,8 @@ def read_battery_voltage():
     lvoltage = vsys_value * (3.3 / 65535) * 3
     return lvoltage
 
-for i in range(5):
-    voltage = read_battery_voltage()
-    log(f"Battery Voltage: {voltage:.2f} V")
-    time.sleep(1)
+voltage = read_battery_voltage()
+log(f"Battery Voltage: {voltage:.2f} V")
 
 landscape_width = EPD_HEIGHT
 landscape_height = EPD_WIDTH
@@ -704,30 +710,54 @@ landscape = framebuf.FrameBuffer(
 )
 
 landscape.fill(0xff)  # white background
-landscape.text("First line", 8, 12, 0x00)
-landscape.text("Second line", 8, 30, 0x00)
+landscape.text("First line012345678901234567890", 8, 12, 0x00)
+landscape.text("Second lineABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz", 8, 30, 0x00)
 landscape.text(wlanIp, 8, 48, 0x00)
-landscape.text(responseText, 8, 66, 0x00)
+# landscape.text(responseText, 8, 66, 0x00)
 landscape.text(current_time, 8, 84, 0x00)
-voltage = read_battery_voltage()
 landscape.text(f"Battery Voltage: {voltage:.2f} V", 8, 102, 0x00)
 
-epd.image1Gray_Portrait.fill(0xff)
-for x in range(landscape_width):
-    for y in range(landscape_height):
-        pixel = landscape.pixel(x, y)
-        epd.image1Gray_Portrait.pixel(y, landscape_width - 1 - x, pixel)
+def write_landscape():
+    epd.image1Gray_Portrait.fill(0xff)
+    for x in range(EPD_HEIGHT):
+        for y in range(EPD_WIDTH):
+            pixel = landscape.pixel(x, y)
+            epd.image1Gray_Portrait.pixel(y, landscape_width - 1 - x, pixel)
 
-epd.display_Base(epd.buffer)
+write_landscape()
+epd.display(epd.buffer)
 
-for i in range(5):
-    voltage = read_battery_voltage()
-    log(f"Battery Voltage: {voltage:.2f} V")
-    time.sleep(1)
+log("Writing split text")
+epd.delay_ms(10000)
 
-log("Sleeping for 120 seconds")
+# The landscape buffer is limited to 6 lines of 36 characters
+# This will automatically split long lines into multiple lines of 36 characters each
+# respecting whole words
+def write_landscape_text(text):
+    landscape.fill(0xff)  # white background
+    words = text.split()
+    lines = []
+    current_line = ""
+    for word in words:
+        if len(current_line) + len(word) + 1 <= 36:
+            current_line += (" " if current_line else "") + word
+        else:
+            lines.append(current_line)
+            current_line = word
+    if current_line:
+        lines.append(current_line)
 
-epd.delay_ms(120000)
+    for i, line in enumerate(lines[:6]):  # limit to 6 lines
+        landscape.text(line, 8, 12 + i * 18, 0x00)  # limit to 36 characters per line
+    write_landscape()
+
+write_landscape_text(responseText)
+epd.display(epd.buffer)
+
+log("Sleeping for 10 seconds")
+
+# epd.delay_ms(120000)
+epd.delay_ms(10000)
 
 wlan.disconnect()
 wlan.active(False)
@@ -779,21 +809,21 @@ for i in range(0, 5):
 for i in range(0, 5):
     epd.image1Gray_Portrait.fill_rect(10 + i*10, 135 + 50, 5, 50, 0x00)
 
-epd.display_Base(epd.buffer)
+epd.display(epd.buffer)
 
 while(1):
     if(ReFlag):
         epd.display_Partial(epd.buffer)
         ReFlag = 0
     elif(SelfFlag):
-        epd.init()
-        epd.display_Base(epd.buffer)
+        # epd.init()
+        epd.display(epd.buffer)
         SelfFlag = 0
     
     pthread_irq()
     tp.ICNT_Scan(icnt_dev, icnt_old)
     key_value = get_key()
-    if(key_value == 0 and icnt_dev.X[0] == icnt_old.X[0] and icnt_dev.Y[0] == icnt_old.Y[0]):
+    if(key_value == 0 and icnt_dev.X[0] == icnt_old.X[0] and icnt_dev.Y[0] == icnt_old.Y[0]):        
         continue
 
     if(icnt_dev.TouchCount or key_value):
@@ -813,14 +843,14 @@ while(1):
             else:
                 epd.image1Gray_Portrait.text("^", 66 + (NumSelect+1)*8, 115, 0x00)
             ReFlag = 1
-            print("Numer Select ...\r\n")
+            print("Number Select ...")
         
         if((icnt_dev.X[0] > 30 and icnt_dev.Y[0] > 240 and icnt_dev.X[0] < 66 and icnt_dev.Y[0] < 258) or key_value == 2): # Display
             key_value = 0
             SelfFlag = 1
             epd.image1Gray_Portrait.fill_rect(66, 100, 50, 30, 0xff)
             epd.image1Gray_Portrait.text(''.join(buf), 66, 100, 0x00)
-            print("Display ...\r\n")
+            print("Display ...")
         
         if((icnt_dev.X[0] > 72 and icnt_dev.Y[0] > 10 and icnt_dev.X[0] < 123 and icnt_dev.Y[0] < 24) or key_value == 3): # Adjust
             key_value = 0
@@ -835,9 +865,9 @@ while(1):
             epd.image1Gray_Portrait.fill_rect(66, 100, 50, 10, 0xff)
             epd.image1Gray_Portrait.text(''.join(buf), 66, 100, 0x00)
             ReFlag = 1
-            print("Numer Adjust ...\r\n")
+            print("Number Adjust ...")
         
-        if(icnt_dev.X[0] > 21 and icnt_dev.Y[0] > 270 and icnt_dev.X[0] < 103 and icnt_dev.Y[0] < 288): # Show/Hied
+        if(icnt_dev.X[0] > 21 and icnt_dev.Y[0] > 270 and icnt_dev.X[0] < 103 and icnt_dev.Y[0] < 288): # Show/Hide
             if(isHide % 2):
                 epd.image1Gray_Portrait.rect(5, 10, 51, 14, 0x00)
                 epd.image1Gray_Portrait.text("Select", 7, 13, 0x00)
