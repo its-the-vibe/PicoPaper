@@ -1,0 +1,20 @@
+PORT ?= 4002
+MPREMOTE = mpremote connect port:rfc2217://localhost:$(PORT)
+
+.PHONY: deploy
+
+deploy:
+	mpremote fs cp main.py :main.py
+	mpremote fs cp secrets.py :secrets.py
+	mpremote fs cp network_requests.py :network_requests.py
+	mpremote fs cp wifi.py :wifi.py
+	mpremote fs cp my_config.py :my_config.py
+	mpremote run main.py
+
+dev:
+	$(MPREMOTE) fs cp main.py :main.py
+	$(MPREMOTE) fs cp secrets_dev.py :secrets.py
+	$(MPREMOTE) fs cp mock_network_requests.py :network_requests.py
+	$(MPREMOTE) fs cp wifi.py :wifi.py
+	$(MPREMOTE) fs cp my_config.py :my_config.py
+	$(MPREMOTE) run main.py

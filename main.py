@@ -35,7 +35,10 @@ import time
 import urequests
 import ntptime
 import ujson
-import ubinascii
+import network_requests
+import wifi
+from secrets import LOGGING_ENDPOINT
+from my_config import TOUCH_ENABLED
 
 # Display resolution
 EPD_WIDTH       = 128
@@ -582,31 +585,19 @@ class ICNT86():
         return
 
 
-led = machine.Pin("LED", machine.Pin.OUT)
-wlan = network.WLAN(network.STA_IF)
-wlan.active(True)
-from secrets import WIFI_SSID, WIFI_PASSWORD, LOGGING_ENDPOINT, BASIC_AUTH_PASSWORD, BASIC_AUTH_USERNAME
-wlan.connect(WIFI_SSID, WIFI_PASSWORD)
-
-auth_string = f"{BASIC_AUTH_USERNAME}:{BASIC_AUTH_PASSWORD}"
-# b2a_base64 adds a trailing newline character, so we use .strip() to remove it
-auth_encoded = ubinascii.b2a_base64(auth_string.encode('ascii')).decode('ascii').strip()
-
-headers = {
-    "Content-Type": "application/json",
-    "Authorization": f"Basic {auth_encoded}"
-}
+wifi = wifi.Wifi()
+wlanIp = wifi.connect()
 
 def log(message):
     print(message)
-    if wlan.isconnected():
+    if wifi.is_connected() and LOGGING_ENDPOINT:
         payload = {
             'severity': 'debug',
             'message': message,
             'service': 'PicoPaper',
         }
         try:
-            response = urequests.post(LOGGING_ENDPOINT, json=payload, headers=headers)
+            response = urequests.post(LOGGING_ENDPOINT, json=payload, headers=network_requests.headers)
             response.close()
         except Exception as e:
             print('Failed to send log:', e)
@@ -638,17 +629,10 @@ epd.image4Gray.text('Grey4',10, 255, epd.black)
 epd.display_4Gray(epd.buffer_4Gray)
 epd.delay_ms(500)
 
-while not wlan.isconnected():
-    led.toggle()
-    time.sleep(1)
-
-led.off()
-
-wlanIp = wlan.ifconfig()[0]
 
 log(f'Connected! IP address: {wlanIp}')
 
-ntptime.settime()
+network_requests.set_ntp_time()
 
 rtc = machine.RTC()
 rtc_datetime = rtc.datetime()
@@ -669,21 +653,7 @@ current_time = "%s %d, %04d %d:%02d %s UTC" % (
 )
 log(f'Current UTC DateTime: {current_time}')
 
-# response = urequests.get('https://api.ipify.org?format=json')
-
-responseText = "no response"
-try:
-    response = urequests.get('https://vibe-thoughts.vibechung.workers.dev/api/thought')
-    jsonData = response.json()
-    responseText = jsonData.get("response")
-except Exception as e:
-    log(f"Failed to fetch thought: {e}")
-    
-finally:
-    if 'response' in locals():
-        response.close()
-
-log(responseText)
+responseText = network_requests.thought_for_the_day(log=log)
 
 en_pin = machine.Pin(25, machine.Pin.OUT)
 
@@ -760,11 +730,11 @@ log("Sleeping for 10 seconds")
 # epd.delay_ms(120000)
 epd.delay_ms(10000)
 
-wlan.disconnect()
-wlan.active(False)
+wifi.disconnect()
+
 log("Wi-Fi turned off.")
 
-machine.lightsleep()
+# machine.lightsleep()
 
 def pthread_irq():
     if(tp.config.digital_read(tp.config.int_pin) == 0):
@@ -782,8 +752,12 @@ def get_key():
     else:
         return 0
 
+# TODO: do we need this one?
 epd.init()
-tp.ICNT_Init()
+
+if TOUCH_ENABLED:
+    tp.ICNT_Init()
+
 # epd.image1Gray_Portrait.Clear(0xff)
 
 # tp.config.int_pin.irq(pthread_irq(), Pin.IRQ_FALLING)
@@ -822,7 +796,10 @@ while(1):
         SelfFlag = 0
     
     pthread_irq()
-    tp.ICNT_Scan(icnt_dev, icnt_old)
+
+    if TOUCH_ENABLED:
+        tp.ICNT_Scan(icnt_dev, icnt_old)
+    
     key_value = get_key()
     if(key_value == 0 and icnt_dev.X[0] == icnt_old.X[0] and icnt_dev.Y[0] == icnt_old.Y[0]):        
         continue
