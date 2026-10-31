@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "author": "Anonymous maker",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-pi-pico-w",
+      "id": "pico",
+      "top": 121.55,
+      "left": 41.95,
+      "attrs": { "env": "micropython-20260406-v1.28.0" }
+    },
+    {
+      "type": "board-epaper-2in9",
+      "id": "epd1",
+      "top": -87,
+      "left": -102.08,
+      "rotate": 180,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    [ "pico:VSYS", "epd1:VCC", "green", [ "h134.71", "v-182.47" ] ],
+    [ "pico:GP11", "epd1:DIN", "green", [ "h-38.4", "v96", "h316.8", "v-393.67" ] ],
+    [ "pico:GP10", "epd1:CLK", "green", [ "h-48", "v115.2", "h316.8", "v-393.67" ] ],
+    [ "pico:GP9", "epd1:CS", "green", [ "h-57.6", "v144", "h316.8", "v-393.6" ] ],
+    [ "pico:GP8", "epd1:DC", "green", [ "h-67.2", "v163.2", "h316.8", "v-393.6" ] ],
+    [ "pico:GP13", "epd1:BUSY", "green", [ "h-19.2", "v48.04", "h240", "v-316.8" ] ],
+    [ "pico:GND.8", "epd1:GND", "black", [ "h144.31", "v-201.67" ] ],
+    [ "pico:GP12", "epd1:RST", "green", [ "h-28.8", "v76.84", "h268.8", "v-345.6" ] ]
+  ],
+  "dependencies": {}
+}

@@ -670,18 +670,19 @@ current_time = "%s %d, %04d %d:%02d %s UTC" % (
 log(f'Current UTC DateTime: {current_time}')
 
 # response = urequests.get('https://api.ipify.org?format=json')
-response = urequests.get('https://vibe-thoughts.vibechung.workers.dev/api/thought')
 
 responseText = "no response"
 try:
+    response = urequests.get('https://vibe-thoughts.vibechung.workers.dev/api/thought')
     jsonData = response.json()
-    thingResponse = jsonData.get("response")
-    response.close()
-    responseText = thingResponse    
+    responseText = jsonData.get("response")
 except Exception as e:
     log(f"Failed to fetch thought: {e}")
-    response = None
- 
+    
+finally:
+    if 'response' in locals():
+        response.close()
+
 log(responseText)
 
 en_pin = machine.Pin(25, machine.Pin.OUT)
