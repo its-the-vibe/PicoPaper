@@ -6,8 +6,8 @@
     {
       "type": "board-pi-pico-w",
       "id": "pico",
-      "top": 121.55,
-      "left": 41.95,
+      "top": 255.95,
+      "left": 22.75,
       "attrs": { "env": "micropython-20260406-v1.28.0" }
     },
     {
@@ -16,18 +16,45 @@
       "top": -87,
       "left": -102.08,
       "rotate": 180,
-      "attrs": {}
+      "attrs": { "version": "1" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "key0",
+      "top": 140.6,
+      "left": -96,
+      "attrs": { "color": "red", "xray": "", "key": "1" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "key1",
+      "top": 140.6,
+      "left": 28.8,
+      "attrs": { "color": "green", "xray": "", "bounce": "1", "key": "2" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "key2",
+      "top": 140.6,
+      "left": 144,
+      "attrs": { "color": "blue", "xray": "", "key": "3" }
     }
   ],
   "connections": [
-    [ "pico:VSYS", "epd1:VCC", "green", [ "h134.71", "v-182.47" ] ],
+    [ "pico:VSYS", "epd1:VCC", "green", [ "h144.31", "v-316.87" ] ],
     [ "pico:GP11", "epd1:DIN", "green", [ "h-38.4", "v96", "h316.8", "v-393.67" ] ],
     [ "pico:GP10", "epd1:CLK", "green", [ "h-48", "v115.2", "h316.8", "v-393.67" ] ],
     [ "pico:GP9", "epd1:CS", "green", [ "h-57.6", "v144", "h316.8", "v-393.6" ] ],
     [ "pico:GP8", "epd1:DC", "green", [ "h-67.2", "v163.2", "h316.8", "v-393.6" ] ],
-    [ "pico:GP13", "epd1:BUSY", "green", [ "h-19.2", "v48.04", "h240", "v-316.8" ] ],
-    [ "pico:GND.8", "epd1:GND", "black", [ "h144.31", "v-201.67" ] ],
-    [ "pico:GP12", "epd1:RST", "green", [ "h-28.8", "v76.84", "h268.8", "v-345.6" ] ]
+    [ "pico:GP13", "epd1:BUSY", "green", [ "h-19.2", "v57.64", "h249.6", "v-460.8" ] ],
+    [ "pico:GND.8", "epd1:GND", "black", [ "h153.91", "v-336.07" ] ],
+    [ "pico:GP12", "epd1:RST", "green", [ "h-28.8", "v76.84", "h268.8", "v-345.6" ] ],
+    [ "pico:GP3", "key1:1.l", "green", [ "h-28.8", "v-153.6" ] ],
+    [ "pico:GP15", "key2:1.l", "green", [ "h-9.6", "v19.24", "h105.6", "v-316.8" ] ],
+    [ "pico:GND.8", "key2:2.l", "black", [ "h38.71", "v-115.4" ] ],
+    [ "key0:1.r", "pico:GP2", "green", [ "h9.8", "v144" ] ],
+    [ "key0:2.r", "pico:GND.1", "black", [ "h0.2", "v115.4" ] ],
+    [ "key1:2.l", "pico:GND.1", "black", [ "h-19.2", "v115.4" ] ]
   ],
   "dependencies": {}
 }
