@@ -1,5 +1,5 @@
 import ubinascii
-from secrets import BASIC_AUTH_PASSWORD, BASIC_AUTH_USERNAME
+from secrets import BASIC_AUTH_PASSWORD, BASIC_AUTH_USERNAME, TUBE_STATUS_ENDPOINT, TUBE_STATUS_BEARER_TOKEN
 import urequests
 
 auth_string = f"{BASIC_AUTH_USERNAME}:{BASIC_AUTH_PASSWORD}"
@@ -28,3 +28,20 @@ def thought_for_the_day(log=print):
             response.close()
 
     return responseText
+
+tube_status_headers = {
+    "Content-Type": "application/json",
+    "Authorization": f"Bearer {TUBE_STATUS_BEARER_TOKEN}"
+}
+
+def tube_status(log=print):
+    try:
+        response = urequests.get(TUBE_STATUS_ENDPOINT, headers=tube_status_headers) 
+        jsonData = response.json()        
+    except Exception as e:
+        log(f"Failed to fetch tube status: {e}")
+    finally:
+        if 'response' in locals():
+            response.close()
+
+    return jsonData

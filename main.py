@@ -699,7 +699,6 @@ write_landscape()
 epd.display(epd.buffer)
 
 log("Writing split text")
-epd.delay_ms(10000)
 
 # The landscape buffer is limited to 6 lines of 36 characters
 # This will automatically split long lines into multiple lines of 36 characters each
@@ -723,6 +722,17 @@ def write_landscape_text(text):
     write_landscape()
 
 write_landscape_text(responseText)
+epd.display(epd.buffer)
+epd.delay_ms(10000)
+
+tube_status = network_requests.tube_status()
+
+landscape.fill(0xff)  # white background
+# iterate over all tube lines and display their status
+for line in tube_status:
+    landscape.text(f"{line['name']}: {line['lineStatuses'][0]['statusSeverityDescription']}", 8, 48 + tube_status.index(line) * 18, 0x00)
+
+write_landscape()
 epd.display(epd.buffer)
 
 log("Sleeping for 10 seconds")
