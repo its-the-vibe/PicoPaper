@@ -3,13 +3,7 @@
   "author": "Anonymous maker",
   "editor": "wokwi",
   "parts": [
-    {
-      "type": "board-pi-pico-w",
-      "id": "pico",
-      "top": 255.95,
-      "left": 22.75,
-      "attrs": {}
-    },
+    { "type": "board-pi-pico-w", "id": "pico", "top": 255.95, "left": 22.75, "attrs": {} },
     {
       "type": "board-epaper-2in9",
       "id": "epd1",
@@ -49,12 +43,17 @@
     [ "pico:GP13", "epd1:BUSY", "green", [ "h-19.2", "v57.64", "h249.6", "v-460.8" ] ],
     [ "pico:GND.8", "epd1:GND", "black", [ "h153.91", "v-336.07" ] ],
     [ "pico:GP12", "epd1:RST", "green", [ "h-28.8", "v76.84", "h268.8", "v-345.6" ] ],
-    [ "pico:GP3", "key1:1.l", "green", [ "h-28.8", "v-153.6" ] ],
-    [ "pico:GP15", "key2:1.l", "green", [ "h-9.6", "v19.24", "h105.6", "v-316.8" ] ],
+    [ "pico:GP3", "key1:1.l", "green", [ "h-38.4", "v-153.6" ] ],
     [ "pico:GND.8", "key2:2.l", "black", [ "h38.71", "v-115.4" ] ],
-    [ "key0:1.r", "pico:GP2", "green", [ "h9.8", "v144" ] ],
     [ "key0:2.r", "pico:GND.1", "black", [ "h0.2", "v115.4" ] ],
-    [ "key1:2.l", "pico:GND.1", "black", [ "h-19.2", "v115.4" ] ]
+    [ "key1:2.l", "pico:GND.1", "black", [ "h-19.2", "v115.4" ] ],
+    [
+      "key0:1.r",
+      "pico:GP15",
+      "green",
+      [ "h9.8", "v67.2", "h201.6", "v249.6", "h-163.2", "v-19.24" ]
+    ],
+    [ "key2:1.l", "pico:GP2", "green", [ "h-19.2", "v96", "h-124.8", "v48" ] ]
   ],
   "dependencies": {}
 }
