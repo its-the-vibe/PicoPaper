@@ -193,8 +193,6 @@ class config():
     def module_exit(self):
         self.digital_write(self.reset_pin, 0)
         self.digital_write(self.trst_pin, 0)
-
-
 class EPD_2in9:
     def __init__(self):
         self.config = config(0x48)
@@ -504,8 +502,6 @@ class EPD_2in9:
         
         self.config.delay_ms(2000)
         self.module_exit()
-
-
 class ICNT_Development():
     def __init__(self):
         self.Touch = 0
@@ -586,6 +582,7 @@ class ICNT86():
         return
 
 
+led = machine.Pin("LED", machine.Pin.OUT)
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
 from secrets import WIFI_SSID, WIFI_PASSWORD, LOGGING_ENDPOINT, BASIC_AUTH_PASSWORD, BASIC_AUTH_USERNAME
@@ -642,7 +639,10 @@ epd.display_4Gray(epd.buffer_4Gray)
 epd.delay_ms(500)
 
 while not wlan.isconnected():
+    led.toggle()
     time.sleep(1)
+
+led.off()
 
 wlanIp = wlan.ifconfig()[0]
 
