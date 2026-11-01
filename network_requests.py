@@ -37,11 +37,23 @@ tube_status_headers = {
 def tube_status(log=print):
     try:
         response = urequests.get(TUBE_STATUS_ENDPOINT, headers=tube_status_headers) 
-        jsonData = response.json()        
+        jsonData = response.json()
+        return jsonData
     except Exception as e:
         log(f"Failed to fetch tube status: {e}")
+        return []
     finally:
         if 'response' in locals():
             response.close()
 
-    return jsonData
+def weather(log=print):
+    try:
+        response = urequests.get("https://wttr.in/London?format=j2") 
+        jsonData = response.json()
+        return jsonData
+    except Exception as e:
+        log(f"Failed to fetch weather: {e}")
+        return None
+    finally:
+        if 'response' in locals():
+            response.close()

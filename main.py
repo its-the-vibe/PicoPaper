@@ -653,7 +653,7 @@ current_time = "%s %d, %04d %d:%02d %s UTC" % (
 )
 log(f'Current UTC DateTime: {current_time}')
 
-responseText = network_requests.thought_for_the_day(log=log)
+thoughtText = network_requests.thought_for_the_day(log=log)
 
 en_pin = machine.Pin(25, machine.Pin.OUT)
 
@@ -680,25 +680,12 @@ landscape = framebuf.FrameBuffer(
     framebuf.MONO_HLSB,
 )
 
-landscape.fill(0xff)  # white background
-landscape.text("First line012345678901234567890", 8, 12, 0x00)
-landscape.text("Second lineABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz", 8, 30, 0x00)
-landscape.text(wlanIp, 8, 48, 0x00)
-# landscape.text(responseText, 8, 66, 0x00)
-landscape.text(current_time, 8, 84, 0x00)
-landscape.text(f"Battery Voltage: {voltage:.2f} V", 8, 102, 0x00)
-
 def write_landscape():
     epd.image1Gray_Portrait.fill(0xff)
     for x in range(EPD_HEIGHT):
         for y in range(EPD_WIDTH):
             pixel = landscape.pixel(x, y)
             epd.image1Gray_Portrait.pixel(y, landscape_width - 1 - x, pixel)
-
-write_landscape()
-epd.display(epd.buffer)
-
-log("Writing split text")
 
 # The landscape buffer is limited to 6 lines of 36 characters
 # This will automatically split long lines into multiple lines of 36 characters each
@@ -721,24 +708,55 @@ def write_landscape_text(text):
         landscape.text(line, 8, 12 + i * 18, 0x00)  # limit to 36 characters per line
     write_landscape()
 
-write_landscape_text(responseText)
-epd.display(epd.buffer)
-epd.delay_ms(10000)
-
-tube_status = network_requests.tube_status()
-
 landscape.fill(0xff)  # white background
-# iterate over all tube lines and display their status
-for line in tube_status:
-    landscape.text(f"{line['name']}: {line['lineStatuses'][0]['statusSeverityDescription']}", 8, 48 + tube_status.index(line) * 18, 0x00)
+landscape.text("First line012345678901234567890", 8, 12, 0x00)
+landscape.text("Second lineABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz", 8, 30, 0x00)
+landscape.text(wlanIp, 8, 48, 0x00)
+# landscape.text(responseText, 8, 66, 0x00)
+landscape.text(current_time, 8, 84, 0x00)
+landscape.text(f"Battery Voltage: {voltage:.2f} V", 8, 102, 0x00)
 
 write_landscape()
 epd.display(epd.buffer)
 
-log("Sleeping for 10 seconds")
+def display_thought():
+    write_landscape_text(thoughtText)
+    epd.display(epd.buffer)
 
-# epd.delay_ms(120000)
-epd.delay_ms(10000)
+def retrieve_and_display_tube_status():
+    tube_status = network_requests.tube_status()
+
+    landscape.fill(0xff)  # white background
+    # iterate over all tube lines and display their status
+    for line in tube_status:
+        landscape.text(f"{line['name']}: {line['lineStatuses'][0]['statusSeverityDescription']}", 8, 30 + tube_status.index(line) * 18, 0x00)
+
+    write_landscape()
+    epd.display(epd.buffer)
+
+weather = network_requests.weather()
+
+def display_weather():
+    if weather:
+        landscape.fill(0xff)  # white background
+        landscape.text("Sunrise: " + weather['weather'][0]['astronomy'][0]['sunrise'], 8, 12, 0x00)
+        landscape.text(f"Weather: {weather['current_condition'][0]['weatherDesc'][0]['value']}", 8, 30, 0x00)
+        landscape.text(f"Temperature: {weather['current_condition'][0]['temp_C']} C", 8, 48, 0x00)
+        landscape.text("Sunset: " + weather['weather'][0]['astronomy'][0]['sunset'], 8, 66, 0x00)
+        write_landscape()
+        epd.display(epd.buffer)
+
+for i in range(3):
+    display_thought()
+    epd.delay_ms(10000)
+
+    retrieve_and_display_tube_status()
+    epd.delay_ms(10000)
+
+    display_weather()
+    epd.delay_ms(10000)
+
+display_thought()
 
 wifi.disconnect()
 
@@ -762,121 +780,123 @@ def get_key():
     else:
         return 0
 
-# TODO: do we need this one?
-epd.init()
 
-if TOUCH_ENABLED:
-    tp.ICNT_Init()
-
-# epd.image1Gray_Portrait.Clear(0xff)
-
-# tp.config.int_pin.irq(pthread_irq(), Pin.IRQ_FALLING)
-
-epd.image1Gray_Portrait.fill(0xff)
-epd.image1Gray_Portrait.rect(5, 10, 51, 14, 0x00)
-epd.image1Gray_Portrait.text("Select", 7, 13, 0x00)
-epd.image1Gray_Portrait.rect(72, 10, 51, 14, 0x00)
-epd.image1Gray_Portrait.text("Adjust", 74, 13, 0x00)
-
-epd.image1Gray_Portrait.rect(30, 240, 66, 18, 0x00)
-epd.image1Gray_Portrait.text("Display", 35, 245, 0x00)
-
-epd.image1Gray_Portrait.rect(21, 270, 82, 18, 0x00)
-epd.image1Gray_Portrait.text("Show/Hide", 26, 275, 0x00)
-
-epd.image1Gray_Portrait.text("On Sale!!!", 10, 50, 0x00)
-epd.image1Gray_Portrait.text("Discount %30", 10, 75, 0x00)
-epd.image1Gray_Portrait.text("Price: ", 10, 100, 0x00)
-epd.image1Gray_Portrait.text(''.join(buf), 66, 100, 0x00)
-
-for i in range(0, 5):
-    epd.image1Gray_Portrait.fill_rect(10 + 50, 135 + i*10, 50, 5, 0x00)
-for i in range(0, 5):
-    epd.image1Gray_Portrait.fill_rect(10 + i*10, 135 + 50, 5, 50, 0x00)
-
-epd.display(epd.buffer)
-
-while(1):
-    if(ReFlag):
-        epd.display_Partial(epd.buffer)
-        ReFlag = 0
-    elif(SelfFlag):
-        # epd.init()
-        epd.display(epd.buffer)
-        SelfFlag = 0
-    
-    pthread_irq()
+def crap():
+    # TODO: do we need this one?
+    epd.init()
 
     if TOUCH_ENABLED:
-        tp.ICNT_Scan(icnt_dev, icnt_old)
-    
-    key_value = get_key()
-    if(key_value == 0 and icnt_dev.X[0] == icnt_old.X[0] and icnt_dev.Y[0] == icnt_old.Y[0]):        
-        continue
+        tp.ICNT_Init()
 
-    if(icnt_dev.TouchCount or key_value):
-        if(key_value):
-            icnt_dev.X[0] = epd.width + 1
-            icnt_dev.Y[0] = epd.height + 1
-        icnt_dev.TouchCount = 0
+    # epd.image1Gray_Portrait.Clear(0xff)
 
-        if((icnt_dev.X[0] > 5 and icnt_dev.Y[0] > 10 and icnt_dev.X[0] < 61 and icnt_dev.Y[0] < 24) or key_value == 1): # Select
-            key_value = 0
-            NumSelect += 1
-            if(NumSelect > 4):
-                NumSelect = 1
-            epd.image1Gray_Portrait.fill_rect(70, 115, 50, 15, 0xff)
-            if(NumSelect < 3):
-                epd.image1Gray_Portrait.text("^", 66 + NumSelect*8, 115, 0x00)
-            else:
-                epd.image1Gray_Portrait.text("^", 66 + (NumSelect+1)*8, 115, 0x00)
-            ReFlag = 1
-            print("Number Select ...")
+    # tp.config.int_pin.irq(pthread_irq(), Pin.IRQ_FALLING)
+
+    epd.image1Gray_Portrait.fill(0xff)
+    epd.image1Gray_Portrait.rect(5, 10, 51, 14, 0x00)
+    epd.image1Gray_Portrait.text("Select", 7, 13, 0x00)
+    epd.image1Gray_Portrait.rect(72, 10, 51, 14, 0x00)
+    epd.image1Gray_Portrait.text("Adjust", 74, 13, 0x00)
+
+    epd.image1Gray_Portrait.rect(30, 240, 66, 18, 0x00)
+    epd.image1Gray_Portrait.text("Display", 35, 245, 0x00)
+
+    epd.image1Gray_Portrait.rect(21, 270, 82, 18, 0x00)
+    epd.image1Gray_Portrait.text("Show/Hide", 26, 275, 0x00)
+
+    epd.image1Gray_Portrait.text("On Sale!!!", 10, 50, 0x00)
+    epd.image1Gray_Portrait.text("Discount %30", 10, 75, 0x00)
+    epd.image1Gray_Portrait.text("Price: ", 10, 100, 0x00)
+    epd.image1Gray_Portrait.text(''.join(buf), 66, 100, 0x00)
+
+    for i in range(0, 5):
+        epd.image1Gray_Portrait.fill_rect(10 + 50, 135 + i*10, 50, 5, 0x00)
+    for i in range(0, 5):
+        epd.image1Gray_Portrait.fill_rect(10 + i*10, 135 + 50, 5, 50, 0x00)
+
+    epd.display(epd.buffer)
+
+    while(1):
+        if(ReFlag):
+            epd.display_Partial(epd.buffer)
+            ReFlag = 0
+        elif(SelfFlag):
+            # epd.init()
+            epd.display(epd.buffer)
+            SelfFlag = 0
         
-        if((icnt_dev.X[0] > 30 and icnt_dev.Y[0] > 240 and icnt_dev.X[0] < 66 and icnt_dev.Y[0] < 258) or key_value == 2): # Display
-            key_value = 0
-            SelfFlag = 1
-            epd.image1Gray_Portrait.fill_rect(66, 100, 50, 30, 0xff)
-            epd.image1Gray_Portrait.text(''.join(buf), 66, 100, 0x00)
-            print("Display ...")
+        pthread_irq()
+
+        if TOUCH_ENABLED:
+            tp.ICNT_Scan(icnt_dev, icnt_old)
         
-        if((icnt_dev.X[0] > 72 and icnt_dev.Y[0] > 10 and icnt_dev.X[0] < 123 and icnt_dev.Y[0] < 24) or key_value == 3): # Adjust
-            key_value = 0
-            temp = NumSelect
-            if(NumSelect>2):
-                temp += 1
-            if((buf[temp]) == '9'):
-                buf[temp] = '0'
-            else:
-                buf[temp] = chr(ord(buf[temp]) + 1)
+        key_value = get_key()
+        if(key_value == 0 and icnt_dev.X[0] == icnt_old.X[0] and icnt_dev.Y[0] == icnt_old.Y[0]):        
+            continue
+
+        if(icnt_dev.TouchCount or key_value):
+            if(key_value):
+                icnt_dev.X[0] = epd.width + 1
+                icnt_dev.Y[0] = epd.height + 1
+            icnt_dev.TouchCount = 0
+
+            if((icnt_dev.X[0] > 5 and icnt_dev.Y[0] > 10 and icnt_dev.X[0] < 61 and icnt_dev.Y[0] < 24) or key_value == 1): # Select
+                key_value = 0
+                NumSelect += 1
+                if(NumSelect > 4):
+                    NumSelect = 1
+                epd.image1Gray_Portrait.fill_rect(70, 115, 50, 15, 0xff)
+                if(NumSelect < 3):
+                    epd.image1Gray_Portrait.text("^", 66 + NumSelect*8, 115, 0x00)
+                else:
+                    epd.image1Gray_Portrait.text("^", 66 + (NumSelect+1)*8, 115, 0x00)
+                ReFlag = 1
+                print("Number Select ...")
             
-            epd.image1Gray_Portrait.fill_rect(66, 100, 50, 10, 0xff)
-            epd.image1Gray_Portrait.text(''.join(buf), 66, 100, 0x00)
-            ReFlag = 1
-            print("Number Adjust ...")
-        
-        if(icnt_dev.X[0] > 21 and icnt_dev.Y[0] > 270 and icnt_dev.X[0] < 103 and icnt_dev.Y[0] < 288): # Show/Hide
-            if(isHide % 2):
-                epd.image1Gray_Portrait.rect(5, 10, 51, 14, 0x00)
-                epd.image1Gray_Portrait.text("Select", 7, 13, 0x00)
-                epd.image1Gray_Portrait.rect(72, 10, 51, 14, 0x00)
-                epd.image1Gray_Portrait.text("Adjust", 74, 13, 0x00)
-
-                epd.image1Gray_Portrait.rect(30, 240, 66, 18, 0x00)
-                epd.image1Gray_Portrait.text("Display", 35, 245, 0x00)
-
-                epd.image1Gray_Portrait.rect(21, 270, 82, 18, 0x00)
-                epd.image1Gray_Portrait.text("Show/Hide", 26, 275, 0x00)
-
-                epd.image1Gray_Portrait.text("On Sale!!!", 10, 50, 0x00)
-                epd.image1Gray_Portrait.text("Discount %30", 10, 75, 0x00)
-                epd.image1Gray_Portrait.text("Price: ", 10, 100, 0x00)
+            if((icnt_dev.X[0] > 30 and icnt_dev.Y[0] > 240 and icnt_dev.X[0] < 66 and icnt_dev.Y[0] < 258) or key_value == 2): # Display
+                key_value = 0
+                SelfFlag = 1
+                epd.image1Gray_Portrait.fill_rect(66, 100, 50, 30, 0xff)
                 epd.image1Gray_Portrait.text(''.join(buf), 66, 100, 0x00)
-            else:
-                epd.image1Gray_Portrait.fill_rect(0, 0, 127, 30, 0xff)
-                epd.image1Gray_Portrait.fill_rect(0, 240, 127, 55, 0xff)
-            isHide += 1
-            SelfFlag = 1
+                print("Display ...")
+            
+            if((icnt_dev.X[0] > 72 and icnt_dev.Y[0] > 10 and icnt_dev.X[0] < 123 and icnt_dev.Y[0] < 24) or key_value == 3): # Adjust
+                key_value = 0
+                temp = NumSelect
+                if(NumSelect>2):
+                    temp += 1
+                if((buf[temp]) == '9'):
+                    buf[temp] = '0'
+                else:
+                    buf[temp] = chr(ord(buf[temp]) + 1)
+                
+                epd.image1Gray_Portrait.fill_rect(66, 100, 50, 10, 0xff)
+                epd.image1Gray_Portrait.text(''.join(buf), 66, 100, 0x00)
+                ReFlag = 1
+                print("Number Adjust ...")
+            
+            if(icnt_dev.X[0] > 21 and icnt_dev.Y[0] > 270 and icnt_dev.X[0] < 103 and icnt_dev.Y[0] < 288): # Show/Hide
+                if(isHide % 2):
+                    epd.image1Gray_Portrait.rect(5, 10, 51, 14, 0x00)
+                    epd.image1Gray_Portrait.text("Select", 7, 13, 0x00)
+                    epd.image1Gray_Portrait.rect(72, 10, 51, 14, 0x00)
+                    epd.image1Gray_Portrait.text("Adjust", 74, 13, 0x00)
+
+                    epd.image1Gray_Portrait.rect(30, 240, 66, 18, 0x00)
+                    epd.image1Gray_Portrait.text("Display", 35, 245, 0x00)
+
+                    epd.image1Gray_Portrait.rect(21, 270, 82, 18, 0x00)
+                    epd.image1Gray_Portrait.text("Show/Hide", 26, 275, 0x00)
+
+                    epd.image1Gray_Portrait.text("On Sale!!!", 10, 50, 0x00)
+                    epd.image1Gray_Portrait.text("Discount %30", 10, 75, 0x00)
+                    epd.image1Gray_Portrait.text("Price: ", 10, 100, 0x00)
+                    epd.image1Gray_Portrait.text(''.join(buf), 66, 100, 0x00)
+                else:
+                    epd.image1Gray_Portrait.fill_rect(0, 0, 127, 30, 0xff)
+                    epd.image1Gray_Portrait.fill_rect(0, 240, 127, 55, 0xff)
+                isHide += 1
+                SelfFlag = 1
         
     
     
