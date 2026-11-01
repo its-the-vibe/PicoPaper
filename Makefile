@@ -10,6 +10,7 @@ deploy:
 	mpremote fs cp wifi.py :wifi.py
 	mpremote fs cp my_config.py :my_config.py
 	mpremote fs cp util.py :util.py
+	mpremote mip install github:its-the-vibe/TinyUpdater/updater.py
 	mpremote run main.py
 
 dev:

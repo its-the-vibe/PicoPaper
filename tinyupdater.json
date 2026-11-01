@@ -1,0 +1,9 @@
+{
+    "files": [
+        "main.py",
+        "util.py",
+        "network_requests.py",
+        "wifi.py",
+        "my_config.py"
+    ]
+}
