@@ -9,6 +9,7 @@ deploy:
 	mpremote fs cp network_requests.py :network_requests.py
 	mpremote fs cp wifi.py :wifi.py
 	mpremote fs cp my_config.py :my_config.py
+	mpremote fs cp util.py :util.py
 	mpremote run main.py
 
 dev:
@@ -17,4 +18,5 @@ dev:
 	$(MPREMOTE) fs cp mock_network_requests.py :network_requests.py
 	$(MPREMOTE) fs cp wifi.py :wifi.py
 	$(MPREMOTE) fs cp my_config.py :my_config.py
+	$(MPREMOTE) fs cp util.py :util.py
 	$(MPREMOTE) run main.py

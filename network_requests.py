@@ -21,6 +21,7 @@ def thought_for_the_day(log=print):
         response = urequests.get('https://vibe-thoughts.vibechung.workers.dev/api/thought')
         jsonData = response.json()
         responseText = jsonData.get("response")
+        log(f"Fetched thought: {responseText}")
     except Exception as e:
         log(f"Failed to fetch thought: {e}")        
     finally:

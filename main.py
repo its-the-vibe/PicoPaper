@@ -30,16 +30,13 @@
 import machine
 import framebuf
 import utime
-import network
-import time
 import urequests
-import ntptime
-import ujson
 import network_requests
 import wifi
 from secrets import LOGGING_ENDPOINT
 from my_config import TOUCH_ENABLED
-
+import util
+    
 # Display resolution
 EPD_WIDTH       = 128
 EPD_HEIGHT      = 296
@@ -629,45 +626,16 @@ epd.image4Gray.text('Grey4',10, 255, epd.black)
 epd.display_4Gray(epd.buffer_4Gray)
 epd.delay_ms(500)
 
-
 log(f'Connected! IP address: {wlanIp}')
 
 network_requests.set_ntp_time()
 
-rtc = machine.RTC()
-rtc_datetime = rtc.datetime()
-month_name = (
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-)[rtc_datetime[1] - 1]
-hour = rtc_datetime[4]
-hour_12 = hour % 12 or 12
-ampm = "AM" if hour < 12 else "PM"
-current_time = "%s %d, %04d %d:%02d %s UTC" % (
-    month_name,
-    rtc_datetime[2],
-    rtc_datetime[0],
-    hour_12,
-    rtc_datetime[5],
-    ampm,
-)
+current_time = util.current_time_str()
 log(f'Current UTC DateTime: {current_time}')
 
 thoughtText = network_requests.thought_for_the_day(log=log)
 
-en_pin = machine.Pin(25, machine.Pin.OUT)
-
-def read_battery_voltage():
-    en_pin.high()
-    time.sleep_ms(10)
-    vsys_pin = machine.ADC(29)
-    vsys_value = vsys_pin.read_u16()
-    en_pin.low()
-
-    lvoltage = vsys_value * (3.3 / 65535) * 3
-    return lvoltage
-
-voltage = read_battery_voltage()
+voltage = util.read_battery_voltage()
 log(f"Battery Voltage: {voltage:.2f} V")
 
 landscape_width = EPD_HEIGHT
@@ -724,9 +692,10 @@ def display_thought():
     epd.display(epd.buffer)
 
 def retrieve_and_display_tube_status():
-    tube_status = network_requests.tube_status()
+    tube_status = network_requests.tube_status(log=log)
 
     landscape.fill(0xff)  # white background
+    landscape.text(util.current_time_str(), 8, 12, 0x00)
     # iterate over all tube lines and display their status
     for line in tube_status:
         landscape.text(f"{line['name']}: {line['lineStatuses'][0]['statusSeverityDescription']}", 8, 30 + tube_status.index(line) * 18, 0x00)
@@ -734,15 +703,23 @@ def retrieve_and_display_tube_status():
     write_landscape()
     epd.display(epd.buffer)
 
-weather = network_requests.weather()
+weather = network_requests.weather(log=log)
 
 def display_weather():
     if weather:
+        weather_desc = weather['current_condition'][0]['weatherDesc'][0]['value']
+        temp_C = weather['current_condition'][0]['temp_C']
+        max_temp_C = weather['weather'][0]['maxtempC']
+        min_temp_C = weather['weather'][0]['mintempC']
+        sunrise = weather['weather'][0]['astronomy'][0]['sunrise']
+        sunset = weather['weather'][0]['astronomy'][0]['sunset']
+
         landscape.fill(0xff)  # white background
-        landscape.text("Sunrise: " + weather['weather'][0]['astronomy'][0]['sunrise'], 8, 12, 0x00)
-        landscape.text(f"Weather: {weather['current_condition'][0]['weatherDesc'][0]['value']}", 8, 30, 0x00)
-        landscape.text(f"Temperature: {weather['current_condition'][0]['temp_C']} C", 8, 48, 0x00)
-        landscape.text("Sunset: " + weather['weather'][0]['astronomy'][0]['sunset'], 8, 66, 0x00)
+        landscape.text(f"Weather: {weather_desc}", 8, 12, 0x00)
+        landscape.text(f"Current: {temp_C} C", 8, 30, 0x00)
+        landscape.text(f"Min: {min_temp_C} C  Max: {max_temp_C} C", 8, 48, 0x00)
+        landscape.text(f"Sunrise: {sunrise}", 8, 66, 0x00)
+        landscape.text(f"Sunset: {sunset}", 8, 84, 0x00)
         write_landscape()
         epd.display(epd.buffer)
 
