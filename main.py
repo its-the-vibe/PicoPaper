@@ -36,6 +36,7 @@ import wifi
 from secrets import LOGGING_ENDPOINT
 from my_config import TOUCH_ENABLED
 import util
+import lib.updater
     
 # Display resolution
 EPD_WIDTH       = 128
@@ -584,6 +585,8 @@ class ICNT86():
 
 wifi = wifi.Wifi()
 wlanIp = wifi.connect()
+
+lib.updater.check_for_updates("its-the-vibe/PicoPaper")
 
 def log(message):
     print(message)

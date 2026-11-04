@@ -3,6 +3,11 @@ MPREMOTE = mpremote connect port:rfc2217://localhost:$(PORT)
 
 .PHONY: deploy
 
+bootstrap:
+	mpremote fs cp secrets.py :secrets.py
+	mpremote mip install github:its-the-vibe/TinyUpdater/updater.py
+	mpremote run bootstrap.py
+	
 deploy:
 	mpremote fs cp main.py :main.py
 	mpremote fs cp secrets.py :secrets.py
