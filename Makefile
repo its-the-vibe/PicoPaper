@@ -25,4 +25,6 @@ dev:
 	$(MPREMOTE) fs cp wifi.py :wifi.py
 	$(MPREMOTE) fs cp my_config.py :my_config.py
 	$(MPREMOTE) fs cp util.py :util.py
+	$(MPREMOTE) fs mkdir lib
+	$(MPREMOTE) fs cp mock_updater.py :lib/updater.py
 	$(MPREMOTE) run main.py

@@ -586,8 +586,6 @@ class ICNT86():
 wifi = wifi.Wifi()
 wlanIp = wifi.connect()
 
-lib.updater.check_for_updates("its-the-vibe/PicoPaper")
-
 def log(message):
     print(message)
     if wifi.is_connected() and LOGGING_ENDPOINT:
@@ -601,6 +599,10 @@ def log(message):
             response.close()
         except Exception as e:
             print('Failed to send log:', e)
+
+log("Checking for updates...")
+lib.updater.check_for_updates("its-the-vibe/PicoPaper")
+log("Update check complete.")
 
 flag_t = NumSelect = 1
 ReFlag = SelfFlag  = temp = isHide = key_value = 0
@@ -726,7 +728,7 @@ def display_weather():
         write_landscape()
         epd.display(epd.buffer)
 
-for i in range(3):
+for i in range(1):
     display_thought()
     epd.delay_ms(10000)
 
@@ -737,10 +739,6 @@ for i in range(3):
     epd.delay_ms(10000)
 
 display_thought()
-
-wifi.disconnect()
-
-log("Wi-Fi turned off.")
 
 # machine.lightsleep()
 
@@ -878,5 +876,34 @@ def crap():
                 isHide += 1
                 SelfFlag = 1
         
-    
-    
+
+displayFuncs = [
+    display_thought,
+    retrieve_and_display_tube_status,
+    display_weather,
+]
+
+current_display = 0
+
+rtc = machine.RTC()
+
+log("Starting main loop...")
+# check if rtc hour and minute are after 9:00 am
+while (1):
+    key = get_key()
+
+    if key == 0:
+        continue
+
+    if key == 1:
+        log("Switching display...")
+        current_display = (current_display + 1) % len(displayFuncs)
+        displayFuncs[current_display]()
+
+    if rtc.datetime()[4] == 9:
+        log("RTC hour is 9 am - entering lightsleep")
+        log("Turning off Wi-Fi...")
+        wifi.disconnect()
+        
+        machine.lightsleep()
+
