@@ -22,6 +22,11 @@ class Wifi:
     def is_connected(self):
         return self.wlan.isconnected()
 
-    def disconnect(self):
+    def disconnect(self, flash=False):
         self.wlan.disconnect()
         self.wlan.active(False)
+
+        if flash:
+            for _ in range(6):
+                self.led.toggle()
+                time.sleep(1)

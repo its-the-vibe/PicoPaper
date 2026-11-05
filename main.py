@@ -892,18 +892,15 @@ log("Starting main loop...")
 while (1):
     key = get_key()
 
-    if key == 0:
-        continue
-
     if key == 1:
         log("Switching display...")
         current_display = (current_display + 1) % len(displayFuncs)
         displayFuncs[current_display]()
 
-    if rtc.datetime()[4] == 9:
+
+    if rtc.datetime()[4] == 9 or key == 2:
         log("RTC hour is 9 am - entering lightsleep")
         log("Turning off Wi-Fi...")
-        wifi.disconnect()
-        
-        machine.lightsleep()
+        wifi.disconnect(flash=True)
 
+        machine.lightsleep()
