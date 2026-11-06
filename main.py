@@ -389,9 +389,9 @@ class EPD_2in9:
         if (image == None):
             return
             
-        self.config.digital_write(self.config.reset_pin, 0)
-        self.config.delay_ms(0.2)
-        self.config.digital_write(self.config.reset_pin, 1) 
+        # self.config.digital_write(self.config.reset_pin, 0)
+        # self.config.delay_ms(200)
+        # self.config.digital_write(self.config.reset_pin, 1) 
         
         self.SendLut(1)
         self.send_command(0x37)
