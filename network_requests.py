@@ -17,6 +17,7 @@ def set_ntp_time():
 
 def thought_for_the_day(log=print):
     responseText = "no response"
+    response = None
     try:
         response = urequests.get('https://vibe-thoughts.vibechung.workers.dev/api/thought')
         jsonData = response.json()
@@ -25,7 +26,7 @@ def thought_for_the_day(log=print):
     except Exception as e:
         log(f"Failed to fetch thought: {e}")        
     finally:
-        if 'response' in locals():
+        if response is not None:
             response.close()
 
     return responseText
@@ -36,6 +37,7 @@ tube_status_headers = {
 }
 
 def tube_status(log=print):
+    response = None
     try:
         response = urequests.get(TUBE_STATUS_ENDPOINT, headers=tube_status_headers) 
         jsonData = response.json()
@@ -44,10 +46,11 @@ def tube_status(log=print):
         log(f"Failed to fetch tube status: {e}")
         return []
     finally:
-        if 'response' in locals():
+        if response is not None:
             response.close()
 
 def weather(log=print):
+    response = None
     try:
         response = urequests.get("https://wttr.in/London?format=j2") 
         jsonData = response.json()
@@ -56,5 +59,5 @@ def weather(log=print):
         log(f"Failed to fetch weather: {e}")
         return None
     finally:
-        if 'response' in locals():
+        if response is not None:
             response.close()
