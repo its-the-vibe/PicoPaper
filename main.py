@@ -589,10 +589,19 @@ wlanIp = wifi.connect()
 def log(message):
     print(message)
     if wifi.is_connected() and LOGGING_ENDPOINT:
+        rtc_datetime = machine.RTC().datetime()
         payload = {
             'severity': 'debug',
             'message': message,
             'service': 'PicoPaper',
+            'timestamp': '%04d-%02d-%02dT%02d:%02d:%02d.000Z' % (
+                rtc_datetime[0],
+                rtc_datetime[1],
+                rtc_datetime[2],
+                rtc_datetime[4],
+                rtc_datetime[5],
+                rtc_datetime[6],
+            ),
         }
         try:
             response = urequests.post(LOGGING_ENDPOINT, json=payload, headers=network_requests.headers)
@@ -600,8 +609,10 @@ def log(message):
         except Exception as e:
             print('Failed to send log:', e)
 
+network_requests.set_ntp_time()
+
 log("Checking for updates...")
-lib.updater.check_for_updates("its-the-vibe/PicoPaper")
+lib.updater.check_for_updates("its-the-vibe/PicoPaper", log=log)
 log("Update check complete.")
 
 flag_t = NumSelect = 1
@@ -632,8 +643,6 @@ epd.display_4Gray(epd.buffer_4Gray)
 epd.delay_ms(500)
 
 log(f'Connected! IP address: {wlanIp}')
-
-network_requests.set_ntp_time()
 
 current_time = util.current_time_str()
 log(f'Current UTC DateTime: {current_time}')
@@ -681,16 +690,18 @@ def write_landscape_text(text):
         landscape.text(line, 8, 12 + i * 18, 0x00)  # limit to 36 characters per line
     write_landscape()
 
-landscape.fill(0xff)  # white background
-landscape.text("First line012345678901234567890", 8, 12, 0x00)
-landscape.text("Second lineABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz", 8, 30, 0x00)
-landscape.text(wlanIp, 8, 48, 0x00)
-# landscape.text(responseText, 8, 66, 0x00)
-landscape.text(current_time, 8, 84, 0x00)
-landscape.text(f"Battery Voltage: {voltage:.2f} V", 8, 102, 0x00)
+def nope():
+    landscape.fill(0xff)  # white background
+    landscape.text("First line012345678901234567890", 8, 12, 0x00)
+    landscape.text("Second lineABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz", 8, 30, 0x00)
+    landscape.text(wlanIp, 8, 48, 0x00)
+    # landscape.text(responseText, 8, 66, 0x00)
+    landscape.text(current_time, 8, 84, 0x00)
+    landscape.text(f"Battery Voltage: {voltage:.2f} V", 8, 102, 0x00)
 
-write_landscape()
-epd.display(epd.buffer)
+    write_landscape()
+
+    epd.display(epd.buffer)
 
 def display_thought():
     write_landscape_text(thoughtText)
@@ -707,8 +718,6 @@ def retrieve_and_display_tube_status():
 
     write_landscape()
     epd.display(epd.buffer)
-
-weather = network_requests.weather(log=log)
 
 def display_weather():
     if weather:
@@ -727,6 +736,8 @@ def display_weather():
         landscape.text(f"Sunset: {sunset}", 8, 84, 0x00)
         write_landscape()
         epd.display(epd.buffer)
+
+weather = network_requests.weather(log=log)
 
 for i in range(1):
     display_thought()
