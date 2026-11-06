@@ -502,7 +502,7 @@ class EPD_2in9:
         self.send_data(0x01)
         
         self.config.delay_ms(2000)
-        self.module_exit()
+        
 class ICNT_Development():
     def __init__(self):
         self.Touch = 0
@@ -705,7 +705,7 @@ def nope():
 
 def display_thought():
     write_landscape_text(thoughtText)
-    epd.display(epd.buffer)
+    epd.display_Base(epd.buffer)
 
 def retrieve_and_display_tube_status():
     tube_status = network_requests.tube_status(log=log)
@@ -717,7 +717,7 @@ def retrieve_and_display_tube_status():
         landscape.text(f"{line['name']}: {line['lineStatuses'][0]['statusSeverityDescription']}", 8, 30 + tube_status.index(line) * 18, 0x00)
 
     write_landscape()
-    epd.display(epd.buffer)
+    epd.display_Base(epd.buffer)
 
 def display_weather():
     if weather:
@@ -735,7 +735,7 @@ def display_weather():
         landscape.text(f"Sunrise: {sunrise}", 8, 66, 0x00)
         landscape.text(f"Sunset: {sunset}", 8, 84, 0x00)
         write_landscape()
-        epd.display(epd.buffer)
+        epd.display_Base(epd.buffer)
 
 weather = network_requests.weather(log=log)
 
@@ -910,8 +910,10 @@ while (1):
 
 
     if rtc.datetime()[4] == 9 or key == 2:
-        log("RTC hour is 9 am - entering lightsleep")
+        log("entering lightsleep")
         log("Turning off Wi-Fi...")
         wifi.disconnect(flash=True)
+
+        epd.sleep()
 
         machine.lightsleep()
