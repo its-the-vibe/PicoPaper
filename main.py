@@ -652,6 +652,12 @@ thoughtText = network_requests.thought_for_the_day(log=log)
 voltage = util.read_battery_voltage()
 log(f"Battery Voltage: {voltage:.2f} V")
 
+# experiment
+epd.buffer.fill(0xff)
+epd.display_Base(epd.buffer)
+
+# end experiment
+
 landscape_width = EPD_HEIGHT
 landscape_height = EPD_WIDTH
 landscape_buffer = bytearray(landscape_width * landscape_height // 8)
@@ -705,7 +711,7 @@ def nope():
 
 def display_thought():
     write_landscape_text(thoughtText)
-    epd.display_Base(epd.buffer)
+    epd.display_Partial(epd.buffer)
 
 def retrieve_and_display_tube_status():
     tube_status = network_requests.tube_status(log=log)
@@ -717,7 +723,7 @@ def retrieve_and_display_tube_status():
         landscape.text(f"{line['name']}: {line['lineStatuses'][0]['statusSeverityDescription']}", 8, 30 + tube_status.index(line) * 18, 0x00)
 
     write_landscape()
-    epd.display_Base(epd.buffer)
+    epd.display_Partial(epd.buffer)
 
 def display_weather():
     if weather:
@@ -735,7 +741,7 @@ def display_weather():
         landscape.text(f"Sunrise: {sunrise}", 8, 66, 0x00)
         landscape.text(f"Sunset: {sunset}", 8, 84, 0x00)
         write_landscape()
-        epd.display_Base(epd.buffer)
+        epd.display_Partial(epd.buffer)
 
 weather = network_requests.weather(log=log)
 
