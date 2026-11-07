@@ -37,6 +37,7 @@ from secrets import LOGGING_ENDPOINT
 from my_config import TOUCH_ENABLED
 import util
 import lib.updater
+import gc
     
 # Display resolution
 EPD_WIDTH       = 128
@@ -389,9 +390,9 @@ class EPD_2in9:
         if (image == None):
             return
             
-        self.config.digital_write(self.config.reset_pin, 0)
-        self.config.delay_ms(200)
-        self.config.digital_write(self.config.reset_pin, 1) 
+        # self.config.digital_write(self.config.reset_pin, 0)
+        # self.config.delay_ms(200)
+        # self.config.digital_write(self.config.reset_pin, 1) 
         
         self.SendLut(1)
         self.send_command(0x37)
@@ -589,7 +590,7 @@ wlanIp = wifi.connect()
 def log(message):
     print(message)
     if wifi.is_connected() and LOGGING_ENDPOINT:
-        rtc_datetime = machine.RTC().datetime()
+        rtc_datetime = rtc.datetime()
         payload = {
             'severity': 'debug',
             'message': message,
@@ -603,13 +604,15 @@ def log(message):
                 rtc_datetime[6],
             ),
         }
+        gc.collect()
         try:
-            response = urequests.post(LOGGING_ENDPOINT, json=payload, headers=network_requests.headers)
-            response.close()
+            lresp = urequests.post(LOGGING_ENDPOINT, json=payload, headers=network_requests.headers)
+            lresp.close()
         except Exception as e:
             print('Failed to send log:', e)
 
 network_requests.set_ntp_time()
+rtc = machine.RTC()
 
 log("Checking for updates...")
 lib.updater.check_for_updates("its-the-vibe/PicoPaper", log=log)
@@ -653,8 +656,10 @@ voltage = util.read_battery_voltage()
 log(f"Battery Voltage: {voltage:.2f} V")
 
 # experiment
-epd.buffer.fill(0xff)
-epd.display_Base(epd.buffer)
+
+def reset_base():
+    epd.image1Gray_Portrait.fill(0xff)
+    epd.display_Base(epd.buffer)
 
 # end experiment
 
@@ -744,6 +749,8 @@ def display_weather():
         epd.display_Partial(epd.buffer)
 
 weather = network_requests.weather(log=log)
+
+reset_base()
 
 for i in range(1):
     display_thought()
@@ -901,8 +908,6 @@ displayFuncs = [
 ]
 
 current_display = 0
-
-rtc = machine.RTC()
 
 log("Starting main loop...")
 # check if rtc hour and minute are after 9:00 am
