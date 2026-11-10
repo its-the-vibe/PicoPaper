@@ -1,6 +1,7 @@
 {
     "files": [
         "main.py",
+        "waveshare.py",
         "util.py",
         "network_requests.py",
         "wifi.py",
