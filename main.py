@@ -11,6 +11,7 @@ import lib.updater
 import gc
 import waveshare
 import sys
+import time
 
 wifi = wifi.Wifi()
 wlanIp = wifi.connect()
@@ -129,6 +130,9 @@ def write_landscape_text(text):
         landscape.text(line, 8, 12 + i * 18, 0x00)  # limit to 36 characters per line
     write_landscape()
 
+def write_landscape_line(line, i):
+    landscape.text(line, 8, 12 + i * 18, 0x00)
+
 def display_debug_text():
     landscape.fill(0xff)  # white background
     landscape.text("First line012345678901234567890", 8, 12, 0x00)
@@ -153,11 +157,11 @@ class Menu:
         self.current_option = 0
 
     def show(self):
-        self.display_base()
+        self.update_base_buffer()
         epd.display_Base(epd.buffer)
-        self.update()
+        self.show_selection()
 
-    def display_base(self):
+    def update_base_buffer(self):
         epd.image1Gray_Portrait.fill(0xff)
         # show a box
         epd.image1Gray_Portrait.rect(5, 5, 117, 100, 0x00)
@@ -165,14 +169,14 @@ class Menu:
         for i, option in enumerate(self.options):
             epd.image1Gray_Portrait.text(f'  {option}', 10, 30 + i * 20, 0x00)
 
-    def update(self):
-        self.display_base()
+    def show_selection(self):
+        self.update_base_buffer()
         epd.image1Gray_Portrait.text("* ", 10, 30 + self.current_option * 20, 0x00)
         epd.display_Partial(epd.buffer)
 
     def select_next(self):
         self.current_option = (self.current_option + 1) % len(self.options)
-        self.update()
+        self.show_selection()
 
     def run(self):
         log("Running menu...")
@@ -222,25 +226,26 @@ def light_sleep():
 class FuzzyClock:
     def run(self):
         log("Starting fuzzy clock...")
+        wifi.disconnect()
         self.display()
+        
+        epd.sleep()
 
         while True:
             if get_key() == 3:
                 return
 
-            wifi.disconnect()
-            epd.sleep()
-            remaining_seconds = random.randint(10, 20) * 60
-            while remaining_seconds > 0:
-                machine.lightsleep(min(1000, remaining_seconds * 1000))
-                remaining_seconds -= 1
-                if get_key() == 3:
-                    epd.init()
-                    wifi.connect()
-                    return
+            now = time.time()
+            sleepTimeSeconds = random.randint(10, 20) * 60
+            target = now + sleepTimeSeconds
+
+            while now < target:
+                machine.lightsleep((target - now) * 1000)
+                now = time.time()
 
             epd.init()
             self.display()
+            epd.sleep()
 
     def display(self):
         rtc_datetime = rtc.datetime()
@@ -259,12 +264,18 @@ class FuzzyClock:
             rtc_datetime[2],
             rtc_datetime[0],
         )
-        write_landscape_text("%s\n%s" % (fuzzy_time, date))
+        landscape.fill(0xff)
+        write_landscape_line(date, 0)
+        write_landscape_line(fuzzy_time, 1)
+        write_landscape()
         epd.display(epd.buffer)
 
 
 class MorningDash:
-    def __init__(self):        
+    def __init__(self):
+        if not wifi.is_connected():
+            wifi.connect()
+
         self.thoughtText = network_requests.thought_for_the_day(log=log)
         self.weather = network_requests.weather(log=log)
 
