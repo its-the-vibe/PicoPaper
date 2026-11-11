@@ -1,5 +1,6 @@
 import machine
 import framebuf
+import random
 import urequests
 import network_requests
 import wifi
@@ -191,6 +192,9 @@ class Menu:
         if self.current_option == 0:  # Morning Dash
             morning_dash = MorningDash()
             morning_dash.run()
+        if self.current_option == 1:  # Fuzzy Clock
+            fuzzy_clock = FuzzyClock()
+            fuzzy_clock.run()
         if self.current_option == 2:  # Demo option
             demo = Demo()
             demo.run()
@@ -213,6 +217,51 @@ def light_sleep():
     epd.sleep()
 
     machine.lightsleep()
+
+
+class FuzzyClock:
+    def run(self):
+        log("Starting fuzzy clock...")
+        self.display()
+
+        while True:
+            if get_key() == 3:
+                return
+
+            wifi.disconnect()
+            epd.sleep()
+            remaining_seconds = random.randint(10, 20) * 60
+            while remaining_seconds > 0:
+                machine.lightsleep(min(1000, remaining_seconds * 1000))
+                remaining_seconds -= 1
+                if get_key() == 3:
+                    epd.init()
+                    wifi.connect()
+                    return
+
+            epd.init()
+            self.display()
+
+    def display(self):
+        rtc_datetime = rtc.datetime()
+        weekdays = (
+            "Monday", "Tuesday", "Wednesday", "Thursday",
+            "Friday", "Saturday", "Sunday",
+        )
+        months = (
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December",
+        )
+        fuzzy_time = util.fuzzy_time_str(rtc_datetime[4], rtc_datetime[5])
+        date = "%s, %s %d, %d" % (
+            weekdays[rtc_datetime[3]],
+            months[rtc_datetime[1] - 1],
+            rtc_datetime[2],
+            rtc_datetime[0],
+        )
+        write_landscape_text("%s\n%s" % (fuzzy_time, date))
+        epd.display(epd.buffer)
+
 
 class MorningDash:
     def __init__(self):        
