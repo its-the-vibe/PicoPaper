@@ -9,6 +9,7 @@ import util
 import lib.updater
 import gc
 import waveshare
+import sys
 
 wifi = wifi.Wifi()
 wlanIp = wifi.connect()
@@ -51,14 +52,29 @@ log("Update check complete.")
 current_time = util.current_time_str()
 log(f'Current UTC DateTime: {current_time}')
 
+voltage = util.read_battery_voltage()
+log(f"Battery Voltage: {voltage:.2f} V")
+
 epd = waveshare.EPD_2in9()
+epd.init()
+
+def get_key():
+    if(epd.config.digital_read(epd.config.key0) == 0):
+        return 1
+    elif(epd.config.digital_read(epd.config.key1) == 0):
+        return 2
+    elif(epd.config.digital_read(epd.config.key2) == 0):
+        return 3
+    else:
+        return 0 
 
 '''
     Because the touch display requires a relatively fast refresh speed, the default 
     needs to use partial refresh, and four gray levels cannot be used in this mode. 
     Here, only four gray level picture refresh demonstration is used
 '''
-def show_4gray_demo():    
+def show_4gray_demo():
+    epd.init_4Gray()
     epd.image4Gray.fill_rect(0, 0, 127, 74, epd.black)  
     epd.image4Gray.text('Grey1',10, 33, epd.white)
     epd.image4Gray.fill_rect(0, 74, 127, 74, epd.darkgray)
@@ -70,21 +86,9 @@ def show_4gray_demo():
     epd.display_4Gray(epd.buffer_4Gray)
     epd.delay_ms(500)
 
-epd.init_4Gray()
-show_4gray_demo()
-
-thoughtText = network_requests.thought_for_the_day(log=log)
-
-voltage = util.read_battery_voltage()
-log(f"Battery Voltage: {voltage:.2f} V")
-
-# experiment
-
 def reset_base():
     epd.image1Gray_Portrait.fill(0xff)
     epd.display_Base(epd.buffer)
-
-# end experiment
 
 landscape_width = waveshare.EPD_HEIGHT
 landscape_height = waveshare.EPD_WIDTH
@@ -137,55 +141,71 @@ def display_debug_text():
 
     epd.display(epd.buffer)
 
-def display_thought():
-    write_landscape_text(thoughtText)
-    epd.display_Partial(epd.buffer)
+class Menu:
+    def __init__(self):
+        self.options = [
+            "Morning Dash",
+            "Fuzzy Clock",
+            "Demo",
+            "Exit",
+        ]
+        self.current_option = 0
 
-def retrieve_and_display_tube_status():
-    tube_status = network_requests.tube_status(log=log)
+    def show(self):
+        self.display_base()
+        epd.display_Base(epd.buffer)
+        self.update()
 
-    landscape.fill(0xff)  # white background
-    landscape.text(util.current_time_str(), 8, 12, 0x00)
-    # iterate over all tube lines and display their status
-    for line in tube_status:
-        landscape.text(f"{line['name']}: {line['lineStatuses'][0]['statusSeverityDescription']}", 8, 30 + tube_status.index(line) * 18, 0x00)
+    def display_base(self):
+        epd.image1Gray_Portrait.fill(0xff)
+        # show a box
+        epd.image1Gray_Portrait.rect(5, 5, 117, 100, 0x00)
+        epd.image1Gray_Portrait.text('Menu', 10, 10, 0x00)
+        for i, option in enumerate(self.options):
+            epd.image1Gray_Portrait.text(f'  {option}', 10, 30 + i * 20, 0x00)
 
-    write_landscape()
-    epd.display_Partial(epd.buffer)
-
-def display_weather():
-    if weather:
-        weather_desc = weather['current_condition'][0]['weatherDesc'][0]['value']
-        temp_C = weather['current_condition'][0]['temp_C']
-        max_temp_C = weather['weather'][0]['maxtempC']
-        min_temp_C = weather['weather'][0]['mintempC']
-        sunrise = weather['weather'][0]['astronomy'][0]['sunrise']
-        sunset = weather['weather'][0]['astronomy'][0]['sunset']
-
-        landscape.fill(0xff)  # white background
-        landscape.text(f"Weather: {weather_desc}", 8, 12, 0x00)
-        landscape.text(f"Current: {temp_C} C", 8, 30, 0x00)
-        landscape.text(f"Min: {min_temp_C} C  Max: {max_temp_C} C", 8, 48, 0x00)
-        landscape.text(f"Sunrise: {sunrise}", 8, 66, 0x00)
-        landscape.text(f"Sunset: {sunset}", 8, 84, 0x00)
-        write_landscape()
+    def update(self):
+        self.display_base()
+        epd.image1Gray_Portrait.text("* ", 10, 30 + self.current_option * 20, 0x00)
         epd.display_Partial(epd.buffer)
 
-weather = network_requests.weather(log=log)
+    def select_next(self):
+        self.current_option = (self.current_option + 1) % len(self.options)
+        self.update()
 
-reset_base()
+    def run(self):
+        log("Running menu...")
+        self.show()
+        while True:
+            key = get_key()
+            if key == 1:
+                self.select_next()
+            if key == 2:
+                log(f"Selecting current option... {self.current_option}")
+                self.handle_selection()
 
-for i in range(1):
-    display_thought()
-    epd.delay_ms(10000)
+    def handle_selection(self):
+        if self.current_option == len(self.options) - 1:  # Exit option
+            log("Exiting menu...")
+            sys.exit(0)
+        if self.current_option == 0:  # Morning Dash
+            morning_dash = MorningDash()
+            morning_dash.run()
 
-    retrieve_and_display_tube_status()
-    epd.delay_ms(10000)
+        self.show()
 
-    display_weather()
-    epd.delay_ms(10000)
+# show_4gray_demo()
 
-display_thought()
+
+# for i in range(1):
+#     display_thought()
+#     epd.delay_ms(10000)
+
+#     retrieve_and_display_tube_status()
+#     epd.delay_ms(10000)
+
+#     display_weather()
+#     epd.delay_ms(10000)
 
 # def pthread_irq():
 #     if(epd.config.digital_read(epd.config.int_pin) == 0):
@@ -193,39 +213,82 @@ display_thought()
 #     else:
 #         icnt_dev.Touch = 0
 
-def get_key():
-    if(epd.config.digital_read(epd.config.key0) == 0):
-        return 1
-    elif(epd.config.digital_read(epd.config.key1) == 0):
-        return 2
-    elif(epd.config.digital_read(epd.config.key2) == 0):
-        return 3
-    else:
-        return 0 
+def light_sleep():
+    log("entering lightsleep")
+    log("Turning off Wi-Fi...")
+    wifi.disconnect(flash=True)
 
-displayFuncs = [
-    display_thought,
-    retrieve_and_display_tube_status,
-    display_weather,
-]
+    epd.sleep()
 
-current_display = 0
+    machine.lightsleep()
 
-log("Starting main loop...")
-# check if rtc hour and minute are after 9:00 am
-while (1):
-    key = get_key()
+class MorningDash:
+    def __init__(self):        
+        self.thoughtText = network_requests.thought_for_the_day(log=log)
+        self.weather = network_requests.weather(log=log)
 
-    if key == 1:
-        log("Switching display...")
-        current_display = (current_display + 1) % len(displayFuncs)
-        displayFuncs[current_display]()
+        reset_base()
 
-    if rtc.datetime()[4] == 9 or key == 2:
-        log("entering lightsleep")
-        log("Turning off Wi-Fi...")
-        wifi.disconnect(flash=True)
+        self.displayFuncs = [
+            self.display_thought,
+            self.retrieve_and_display_tube_status,
+            self.display_weather,
+        ]
+        self.current_display = 0
 
-        epd.sleep()
+    def run(self):
+        log("Starting morning dash...")
+        self.display_thought()
 
-        machine.lightsleep()
+        while (1):
+            key = get_key()
+
+            if key == 1:
+                log("Switching display...")
+                self.current_display = (self.current_display + 1) % len(self.displayFuncs)
+                self.displayFuncs[self.current_display]()
+
+            if rtc.datetime()[4] == 9 or key == 2:
+                light_sleep()
+
+            if key == 3:
+                log("Exiting morning dash...")
+                return
+
+    def display_thought(self):
+        write_landscape_text(self.thoughtText)
+        epd.display_Partial(epd.buffer)
+
+    def retrieve_and_display_tube_status(self):
+        tube_status = network_requests.tube_status(log=log)
+
+        landscape.fill(0xff)  # white background
+        landscape.text(util.current_time_str(), 8, 12, 0x00)
+        # iterate over all tube lines and display their status
+        for line in tube_status:
+            landscape.text(f"{line['name']}: {line['lineStatuses'][0]['statusSeverityDescription']}", 8, 30 + tube_status.index(line) * 18, 0x00)
+
+        write_landscape()
+        epd.display_Partial(epd.buffer)
+
+    def display_weather(self):
+        if self.weather:
+            weather_desc = self.weather['current_condition'][0]['weatherDesc'][0]['value']
+            temp_C = self.weather['current_condition'][0]['temp_C']
+            max_temp_C = self.weather['weather'][0]['maxtempC']
+            min_temp_C = self.weather['weather'][0]['mintempC']
+            sunrise = self.weather['weather'][0]['astronomy'][0]['sunrise']
+            sunset = self.weather['weather'][0]['astronomy'][0]['sunset']
+
+            landscape.fill(0xff)  # white background
+            landscape.text(f"Weather: {weather_desc}", 8, 12, 0x00)
+            landscape.text(f"Current: {temp_C} C", 8, 30, 0x00)
+            landscape.text(f"Min: {min_temp_C} C  Max: {max_temp_C} C", 8, 48, 0x00)
+            landscape.text(f"Sunrise: {sunrise}", 8, 66, 0x00)
+            landscape.text(f"Sunset: {sunset}", 8, 84, 0x00)
+            write_landscape()
+            epd.display_Partial(epd.buffer)
+
+
+menu = Menu()
+menu.run()
