@@ -30,3 +30,5 @@ class Wifi:
             for _ in range(6):
                 self.led.toggle()
                 time.sleep(1)
+
+            self.led.off()

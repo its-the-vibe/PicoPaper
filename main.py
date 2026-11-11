@@ -226,9 +226,9 @@ def light_sleep():
 class FuzzyClock:
     def run(self):
         log("Starting fuzzy clock...")
-        wifi.disconnect()
         self.display()
-        
+        wifi.disconnect(flash=True)
+
         epd.sleep()
 
         while True:
