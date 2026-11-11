@@ -191,21 +191,13 @@ class Menu:
         if self.current_option == 0:  # Morning Dash
             morning_dash = MorningDash()
             morning_dash.run()
+        if self.current_option == 2:  # Demo option
+            demo = Demo()
+            demo.run()
 
         self.show()
 
 # show_4gray_demo()
-
-
-# for i in range(1):
-#     display_thought()
-#     epd.delay_ms(10000)
-
-#     retrieve_and_display_tube_status()
-#     epd.delay_ms(10000)
-
-#     display_weather()
-#     epd.delay_ms(10000)
 
 # def pthread_irq():
 #     if(epd.config.digital_read(epd.config.int_pin) == 0):
@@ -288,6 +280,15 @@ class MorningDash:
             landscape.text(f"Sunset: {sunset}", 8, 84, 0x00)
             write_landscape()
             epd.display_Partial(epd.buffer)
+
+class Demo:
+    def run(self):
+        log("Running demo...")        
+        show_4gray_demo()        
+        epd.delay_ms(10000)
+        display_debug_text()
+        epd.delay_ms(10000)
+        return
 
 
 menu = Menu()
